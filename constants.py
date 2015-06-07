@@ -1,10 +1,12 @@
-DISTANCE_TO_PERSEUS = 73.6
+DISTANCE_TO_PERSEUS = 73.6 # Megaparsecs
+def mpc_to_cm(mpc):
+    return 3.085677581e+24 * mpc
 
 CENTER_RA = 3.3300361111111108
 CENTER_DEC = 41.511722222222225
 
-BINS = [(4., 5.5), (3., 4.), (2., 3.), (1., 2.), (0., 1.)]
-BIN_WIDTH = DISTANCE_TO_PERSEUS / 1.
+BINS = [(4., 5.2), (3., 4.), (2., 3.), (1.5, 2.), (1., 1.5), (0.5, 1.), (0., 0.5)]
+BIN_WIDTHS = [DISTANCE_TO_PERSEUS / (end-start) for (start, end) in BINS]
 
 DATAFILE = 'with_errors.tsv'
 
