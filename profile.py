@@ -1,3 +1,4 @@
+from collections import Counter
 from constants import *
 import numpy as np
 from parse import read_data
@@ -37,14 +38,27 @@ def plot_radial_velocities(data_list):
     plt.show()
 
 
-# C_i,i+1 are the deprojected galaxy counts
-# S_m,m+1 are projected (observed) galaxy counts
-# TODO: figure out how to actually use this in the bin densities
+# Input: list of distances of galaxies from center to cluster
+# Output: map from bin index (0 -> len(BINS)-1) to counts of galaxies observed in that bin
+def get_observed_densities_per_bin(dist_list):
+    counts = Counter()
+    for dist in dist_list:
+        for i in range(len(BINS)):
+            start, end = BINS[i]
+            if dist >= start:
+                counts[i] += 1
+    return counts
 
 # Input: list of galaxy data dicts
 # Output: list of galaxy counts per unit volume, one entry per bin
 def get_bin_densities(data_list):
-    pass # TODO
+    dist_list = [get_apparent_sphere_distance(data[RA], data[DEC], CENTER_RA, CENTER_DEC) for data in data_list]
+    observed_densities = get_observed_densities_per_bin(dist_list)
+    
+    # Image in fb chat:
+    # C_i,i+1 are the deprojected galaxy counts
+    # S_m,m+1 are projected (observed) galaxy counts
+    # TODO: iterate backwards through the shells
 
 
 # Alp ^
