@@ -52,14 +52,37 @@ def get_observed_densities_per_bin(dist_list):
 # Input: list of galaxy data dicts
 # Output: list of galaxy counts per unit volume, one entry per bin
 def get_bin_densities(data_list):
-    dist_list = [get_apparent_sphere_distance(data[RA], data[DEC], CENTER_RA, CENTER_DEC) for data in data_list]
-    observed_densities = get_observed_densities_per_bin(dist_list)
-    
     # Image in fb chat:
     # C_i,i+1 are the deprojected galaxy counts
     # S_m,m+1 are projected (observed) galaxy counts
-    # TODO: iterate backwards through the shells
+    dist_list = [get_apparent_sphere_distance(data[RA], data[DEC], CENTER_RA, CENTER_DEC) for data in data_list]
+    observed_densities = get_observed_densities_per_bin(dist_list)
+    print observed_densities
+    num_bins = len(BINS)
+    C_list = list()
+    A_list = [get_A(i, i + 1) for i in range(num_bins - 1)]
+    b = ((np.pi * mpc_to_cm(DISTANCE_TO_PERSEUS)) / 10800)**2
+    for i in range(num_bins - 1):
+        the_sum = observed_densities[i] / (b / A_list[i])
+        partial_sum = sum([sub_sum(j, i, C_list) for j in range(i)])
+        C_i = (the_sum - partial_sum) / get_V(i, i + 1)
+        C_list.append(C_i)
+    return C_list
 
+def get_A(i, j):
+    return np.pi * (get_r(i)**2 - get_r(j)**2)
+
+def sub_sum(i, m, C_list):
+    return C_list[i] * (get_V(i, m + 1) - get_V(i + 1, m + 1) - get_V(i, m) + get_V(i + 1, m))
+    
+
+def get_V(i, j):
+    if i >= j:
+        return 0.0
+    return (4 / 3) * np.pi * (get_r(i)**2 - get_r(j)**2)**1.5
+
+def get_r(i):
+    return BINS[i][1]    
 
 # Alp ^
 # Keith v
