@@ -39,10 +39,10 @@ def plot_radial_velocities(data_list):
     plt.show()
 
 def plot_bin_densities(bin_densities):
-    pass
+    pass # TODO
 
 def plot_bin_velocity_dispersions(bin_dispersions, bin_dispersion_errs):
-    pass
+    pass # TODO
 
 # Input: list of distances of galaxies from center to cluster
 # Output: map from bin index (0 -> len(BINS)-1) to counts of galaxies observed in that bin
@@ -195,6 +195,13 @@ def get_bin_dispersions_and_errors(data_list, bin_densities, iters=1000, print_p
 
 if __name__=='__main__':
     data_list = read_data()
+
+    # Sanity check for density
+    # TODO: why is this 10^6 lower than what we get with 1 bin?
+    #       If nothing works, try getting rid of reweighting and using simple bin volumes (e.g. the equation for a single V_ij)
+    print len(data_list)
+    print (4./3.) * np.pi * (mpc_to_cm(5.2))**3
+    print (float(len(data_list)) / ((4./3.) * np.pi * (mpc_to_cm(5.2))**3))
 
     bin_densities = get_bin_densities(data_list)
     print 'Using bin densities: %s' % (bin_densities)
