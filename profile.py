@@ -34,9 +34,15 @@ def plot_radial_velocities(data_list):
             xerrs.append(0)
             yerrs.append(hrv_err)
     plt.errorbar(xs, ys, xerr=xerrs, yerr=yerrs, fmt='o')
-    # plt.hist(dist_list, bins=40)
+    plt.xlabel('R (Mpc)')
+    plt.ylabel('Radial velocity (km/s)')
     plt.show()
 
+def plot_bin_densities(bin_densities):
+    pass
+
+def plot_bin_velocity_dispersions(bin_dispersions, bin_dispersion_errs):
+    pass
 
 # Input: list of distances of galaxies from center to cluster
 # Output: map from bin index (0 -> len(BINS)-1) to counts of galaxies observed in that bin
@@ -47,6 +53,7 @@ def get_observed_densities_per_bin(dist_list):
             start, end = BINS[i]
             if dist >= start:
                 counts[i] += 1
+                break
     return counts
 
 # Input: list of galaxy data dicts
@@ -75,7 +82,6 @@ def get_A(i, j):
 def sub_sum(i, m, C_list):
     return C_list[i] * (get_V(i, m + 1) - get_V(i + 1, m + 1) - get_V(i, m) + get_V(i + 1, m))
     
-
 def get_V(i, j):
     if i >= j:
         return 0.0
@@ -84,11 +90,7 @@ def get_V(i, j):
 def get_r(i):
     if i == len(BINS):
         return 0.0
-    return BINS[i][1]    
-
-# Alp ^
-# Keith v
-
+    return mpc_to_cm(BINS[i][1])
 
 # Input: list of bin densities; index of bin for which to get probabilities
 # Output: list of index+1 probabilities, where the i'th probability is the
@@ -118,11 +120,12 @@ def get_bin_map(data_list):
                 if i not in bin_map:
                     bin_map[i] = []
                 bin_map[i].append(data)
+                break
     return bin_map
 
 # Input: list of galaxy data dicts (ones with RV only), list of densities (one entry per bin)
 # Output: list of velocity dispersions, one entry per bin
-def get_bin_velocity_dispersions(data_list, bin_densities):
+def get_bin_velocity_dispersions(data_list, bin_densities, print_debug=False):
     bin_map = get_bin_map(data_list)
     bin_prob_map = get_bin_probability_map(bin_densities)
     means = []
@@ -150,6 +153,14 @@ def get_bin_velocity_dispersions(data_list, bin_densities):
             weighted_means_sq += prev_bin_prob * means[prev_bin_index]
         weighted_means_sq = weighted_means_sq ** 2
 
+        if print_debug:
+            print 'Observed: %s' % (observed_var_rv)
+            print 'Prev bin weighted: %s' % (prev_bin_weighted_vars)
+            print 'Weighted sq means: %s' % (weighted_sq_means)
+            print 'Weighted means sq: %s' % (weighted_means_sq)
+            print 'Divided by prob: %s' % (own_bin_prob)
+            print '\tResults in variance: %s' % ((observed_var_rv - prev_bin_weighted_vars - weighted_sq_means + weighted_means_sq) / own_bin_prob)
+
         variances.append((observed_var_rv - prev_bin_weighted_vars - weighted_sq_means + weighted_means_sq) / own_bin_prob)
 
     dispersions = [np.sqrt(var) for var in variances]
@@ -158,11 +169,11 @@ def get_bin_velocity_dispersions(data_list, bin_densities):
 # Input: list of galaxy data dicts (ones with RV only), list of densities (one entry per bin)
 # Output: list of velocity dispersions (one per bin), list of errors on those dispersions
 #         obtained via Monte Carlo simulation
-def get_bin_dispersions_and_errors(data_list, bin_densities, iters=2000, print_progress=True):
+def get_bin_dispersions_and_errors(data_list, bin_densities, iters=1000, print_progress=True):
     bin_dispersion_lists = {i: [] for i in range(len(BINS))}
     for iter_num in xrange(iters):
-        if print_progress and iter_num % 500 == 0 and iter_num > 0:
-            print 'Iteration %s' % (iter_num)
+        if print_progress and (iter_num+1) % 500 == 0 and iter_num > 0:
+            print 'Iteration %s' % (iter_num+1)
         fake_data_list = [
             {
                 HRV: np.random.normal(data[HRV], data[HRV_ERR]),
@@ -179,14 +190,13 @@ def get_bin_dispersions_and_errors(data_list, bin_densities, iters=2000, print_p
     for bin_index in range(len(BINS)):
         bin_dispersion_list = bin_dispersion_lists[bin_index]
         bin_dispersions.append(np.mean(bin_dispersion_list))
-        bin_dispersion_errs.append(np.std(bin_dispersion_list) / np.sqrt(len(bin_dispersion_list)))
+        bin_dispersion_errs.append(np.std(bin_dispersion_list))
     return bin_dispersions, bin_dispersion_errs
 
 if __name__=='__main__':
     data_list = read_data()
 
     bin_densities = get_bin_densities(data_list)
-    # bin_densities = [0.005, 0.01, 0.025, 0.06, 0.11, 0.175, 0.29]
     print 'Using bin densities: %s' % (bin_densities)
 
     data_with_rv = [data for data in data_list if data[HRV] and data[HRV]>MIN_RV and data[HRV]<MAX_RV]
