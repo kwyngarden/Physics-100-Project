@@ -57,7 +57,7 @@ def get_bin_densities(data_list):
     # S_m,m+1 are projected (observed) galaxy counts
     dist_list = [get_apparent_sphere_distance(data[RA], data[DEC], CENTER_RA, CENTER_DEC) for data in data_list]
     observed_densities = get_observed_densities_per_bin(dist_list)
-    print observed_densities
+    print 'Observed densities: %s' % (observed_densities)
     num_bins = len(BINS)
     C_list = list()
     A_list = [get_A(i, i + 1) for i in range(num_bins - 1)]
@@ -156,7 +156,7 @@ def get_bin_velocity_dispersions(data_list, bin_densities):
 # Input: list of galaxy data dicts (ones with RV only), list of densities (one entry per bin)
 # Output: list of velocity dispersions (one per bin), list of errors on those dispersions
 #         obtained via Monte Carlo simulation
-def get_bin_dispersions_and_errors(data_list, bin_densities, iters=2000, print_progress=False):
+def get_bin_dispersions_and_errors(data_list, bin_densities, iters=2000, print_progress=True):
     bin_dispersion_lists = {i: [] for i in range(len(BINS))}
     for iter_num in xrange(iters):
         if print_progress and iter_num % 500 == 0 and iter_num > 0:
@@ -183,8 +183,8 @@ def get_bin_dispersions_and_errors(data_list, bin_densities, iters=2000, print_p
 if __name__=='__main__':
     data_list = read_data()
 
-    # bin_densities = get_bin_densities(data_list)
-    bin_densities = [0.005, 0.01, 0.025, 0.06, 0.11, 0.175, 0.29]
+    bin_densities = get_bin_densities(data_list)
+    # bin_densities = [0.005, 0.01, 0.025, 0.06, 0.11, 0.175, 0.29]
     print 'Using bin densities: %s' % (bin_densities)
 
     data_with_rv = [data for data in data_list if data[HRV] and data[HRV]>MIN_RV and data[HRV]<MAX_RV]
