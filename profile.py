@@ -1,6 +1,7 @@
 from constants import *
 import numpy as np
 from parse import read_data
+import matplotlib.pyplot as plt
 
 
 def convert_to_cartesian(ra, dec, dist=DISTANCE_TO_PERSEUS):
@@ -21,9 +22,22 @@ def get_apparent_sphere_distance(ra1, dec1, ra2, dec2):
     return np.sqrt((x2 - x1)**2 + (y2 - y1)**2 + (z2 - z1)**2)
 
 if __name__=='__main__':
-    # print get_apparent_sphere_distance(6.752472, 16.7161, 18.615639, 38.78361)
+    data_list = read_data()
 
+    dist_list = [get_apparent_sphere_distance(data[RA], data[DEC], CENTER_RA, CENTER_DEC) for data in data_list]
+    hrvs = [data[HRV] for data in data_list]
+    hrv_errs = [data[HRV_ERR] for data in data_list]
+    xs, ys, xerrs, yerrs = [], [], [], []
+    for dist, hrv, hrv_err in zip(dist_list, hrvs, hrv_errs):
+        if hrv and hrv_err:
+            xs.append(dist)
+            ys.append(hrv)
+            xerrs.append(0)
+            yerrs.append(hrv_err)
+    plt.errorbar(xs, ys, xerr=xerrs, yerr=yerrs, fmt='o')
 
+    # plt.hist(dist_list, bins=40)
+    plt.show()
 
 
     print 'Done'

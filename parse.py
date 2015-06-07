@@ -44,10 +44,10 @@ def get_hrv_error(data):
     ra_str = data[RA]
     dec_str = data[DEC]
     # Don't look up HRV error, since we already have it or don't need it
-    if data[HRV_ERR] != '':
+    if data[HRV_ERR]:
         return float(data[HRV_ERR])
-    if data[HRV] == '':
-        return ''
+    if not data[HRV]:
+        return None
 
     print 'Looking up HRV error for (%s, %s)...' % (ra_str, dec_str)
     sleep(1) # Rate-limit
@@ -64,9 +64,9 @@ def get_hrv_error(data):
             return max_other_err
         else:
             print '\tERROR: No error found for (%s, %s)' % (ra_str, dec_str)
-            return ''
+            return None
     print '\tERROR: for (%s, %s), found %s HRV error entries.' % (ra_str, dec_str, len(hrv_error_lines))
-    return ''
+    return None
 
 # Convert measurements like +41 22 33.4 or 02 59 32.19 to decimal numbers.
 # Note that the first unit can be degrees or hours, but the other two
@@ -92,10 +92,8 @@ def read_data(filename=DATAFILE, headers=HEADERS):
         for value, header in zip(line_tokens, headers):
             line_data[header] = value
 
-        if line_data[HRV] != '':
-            line_data[HRV] = float(line_data[HRV])
-        if line_data[MAG] != '':
-            line_data[MAG] = float(line_data[MAG])
+        line_data[HRV] = float(line_data[HRV]) if line_data[HRV] != '' else None
+        line_data[MAG] = float(line_data[MAG]) if line_data[MAG] != '' else None
         line_data[HRV_ERR] = get_hrv_error(line_data)
         
         line_data[RA] = convert_to_fraction(line_data[RA])
