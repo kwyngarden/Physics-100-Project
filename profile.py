@@ -60,9 +60,9 @@ def get_bin_densities(data_list):
     print observed_densities
     num_bins = len(BINS)
     C_list = list()
-    A_list = [get_A(i, i + 1) for i in range(num_bins - 1)]
+    A_list = [get_A(i, i + 1) for i in range(num_bins)]
     b = ((np.pi * mpc_to_cm(DISTANCE_TO_PERSEUS)) / 10800)**2
-    for i in range(num_bins - 1):
+    for i in range(num_bins):
         the_sum = observed_densities[i] / (b / A_list[i])
         partial_sum = sum([sub_sum(j, i, C_list) for j in range(i)])
         C_i = (the_sum - partial_sum) / get_V(i, i + 1)
@@ -82,6 +82,8 @@ def get_V(i, j):
     return (4 / 3) * np.pi * (get_r(i)**2 - get_r(j)**2)**1.5
 
 def get_r(i):
+    if i == len(BINS):
+        return 0.0
     return BINS[i][1]    
 
 # Alp ^
