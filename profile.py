@@ -44,6 +44,9 @@ def plot_bin_densities(bin_densities):
 def plot_bin_velocity_dispersions(bin_dispersions, bin_dispersion_errs):
     pass # TODO
 
+def plot_bin_enclosed_masses(masses, mass_errs):
+    pass # TODO
+
 # Input: list of distances of galaxies from center to cluster
 # Output: map from bin index (0 -> len(BINS)-1) to counts of galaxies observed in that bin
 def get_observed_densities_per_bin(dist_list):
@@ -190,8 +193,38 @@ def get_bin_dispersions_and_errors(data_list, bin_densities, iters=1000, print_p
     for bin_index in range(len(BINS)):
         bin_dispersion_list = bin_dispersion_lists[bin_index]
         bin_dispersions.append(np.mean(bin_dispersion_list))
-        bin_dispersion_errs.append(np.std(bin_dispersion_list))
+        bin_dispersion_errs.append(np.std(bin_dispersion_list, ddof=1))
     return bin_dispersions, bin_dispersion_errs
+
+def jeans_eq_mass_profile(bin_densities, bin_dispersions):
+    masses = {}
+    for right_bin_index in range(len(BINS)-1, 0, -1):
+        r = BINS[right_bin_index][1]
+        dispersion = np.mean([bin_dispersions[right_bin_index-1], bin_dispersions[right_bin_index]]) ** 2
+        left_midpoint = mpc_to_m(np.mean([BINS[right_bin_index-1][0], BINS[right_bin_index-1][1]]))
+        right_midpoint = mpc_to_m(np.mean([BINS[right_bin_index][0], BINS[right_bin_index][1]]))
+        log_r = np.log(left_midpoint) - np.log(right_midpoint)
+        diff_density = np.log(bin_densities[right_bin_index-1]) - np.log(bin_densities[right_bin_index])
+        diff_dispersion = np.log(bin_dispersions[right_bin_index-1] ** 2) - np.log(bin_dispersions[right_bin_index] ** 2)
+        masses[r] = -dispersion * mpc_to_m(r) * ((diff_density + diff_dispersion) / log_r) / G
+    return masses
+
+def get_jeans_eq_masses_and_errors(bin_densities, bin_dispersions, bin_dispersion_errs, iters=1000):
+    bin_densities = [cm3_to_m3_density(density)/1000000. for density in bin_densities]
+    mass_lists = {BINS[right_bin_index][1]: [] for right_bin_index in range(len(BINS)-1, 0, -1)}
+    for iter_num in xrange(iters):
+        fake_bin_dispersions = [np.random.normal(bin_dispersions[i], bin_dispersion_errs[i]) for i in range(len(BINS))]
+        masses = jeans_eq_mass_profile(bin_densities, fake_bin_dispersions)
+        for r, mass in masses.items():
+            mass_lists[r].append(mass)
+    masses = {}
+    mass_errs = {}
+    for right_bin_index in range(len(BINS)-1, 0, -1):
+        r = BINS[right_bin_index][1]
+        mass_list = mass_lists[r]
+        masses[r] = np.mean(mass_list)
+        mass_errs[r] = np.std(mass_list, ddof=1)
+    return masses, mass_errs
 
 if __name__=='__main__':
     data_list = read_data()
@@ -210,5 +243,9 @@ if __name__=='__main__':
     bin_dispersions, bin_dispersion_errs = get_bin_dispersions_and_errors(data_with_rv, bin_densities)
     for i in range(len(BINS)):
         print 'Bin %s: %.2f km/s (+/- %.2f)' % (i, bin_dispersions[i], bin_dispersion_errs[i])
+
+    masses, mass_errs = get_jeans_eq_masses_and_errors(bin_densities, bin_dispersions, bin_dispersion_errs)
+    for r in masses:
+        print 'r=%s: %s kg (+/- %s)' % (r, masses[r], mass_errs[r])
 
     print 'Done'

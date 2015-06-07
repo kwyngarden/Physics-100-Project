@@ -1,17 +1,24 @@
 DISTANCE_TO_PERSEUS = 73.6 # Megaparsecs
 def mpc_to_cm(mpc):
-    return 3.085677581e+24 * mpc
+    return 3.08567758128e+24 * mpc
+def mpc_to_m(mpc):
+    return 3.08567758128e+22 * mpc
+def cm3_to_m3_density(density):
+    # Convert a density in cm^-3 to a density in m^-3
+    return density * (100. ** 3)
 
 CENTER_RA = 3.3300361111111108
 CENTER_DEC = 41.511722222222225
 
 # BINS = [(4., 5.2), (3., 4.), (2., 3.), (1.5, 2.), (1., 1.5), (0.5, 1.), (0., 0.5)]
-# BINS = [(4.5, 5.2), (3.5, 4.5), (2.75, 3.5), (2., 2.75), (1.5, 2.), (0., 1.5)]
-BINS = [(0., 5.2)]
+BINS = [(4.5, 5.2), (3.5, 4.5), (2.75, 3.5), (2., 2.75), (1.5, 2.), (0., 1.5)]
+# BINS = [(0., 5.2)]
 BIN_WIDTHS = [DISTANCE_TO_PERSEUS / (end-start) for (start, end) in BINS]
 
 MIN_RV = 500
 MAX_RV = 12500
+
+G = 6.67384e-11
 
 DATAFILE = 'with_errors.tsv'
 
