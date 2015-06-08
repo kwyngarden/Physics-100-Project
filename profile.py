@@ -242,7 +242,7 @@ def generate_bin_masses(bin_map):
         bin_mass_list = []
         for data in bin_map[bin_index]:
             if data[LUM] and data[GTYPE]:
-                luminosity = max(0., np.random.normal(data[LUM], data[LUM_ERR])) if data[LUM_ERR] else data[LUM]
+                luminosity = np.random.normal(data[LUM], data[LUM_ERR]) if data[LUM_ERR] else data[LUM]
                 if luminosity > 0:
                     mass, mass_err = get_mass_estimate(luminosity, data[GTYPE])
                     generated_mass = max(0., np.random.normal(mass, mass_err))
@@ -335,13 +335,13 @@ if __name__=='__main__':
 
     print 'Total enclosed mass estimated with virial theorem: %s kg\n' % (estimate_overall_enclosed_mass(data_with_rv))
 
-    # bin_dispersions, bin_dispersion_errs = get_bin_dispersions_and_errors(data_with_rv, bin_densities)
-    # for i in range(len(BINS)):
-    #     print 'Bin %s: %.2f km/s (+/- %.2f)' % (i, bin_dispersions[i], bin_dispersion_errs[i])
+    bin_dispersions, bin_dispersion_errs = get_bin_dispersions_and_errors(data_with_rv, bin_densities)
+    for i in range(len(BINS)):
+        print 'Bin %s: %.2f km/s (+/- %.2f)' % (i, bin_dispersions[i], bin_dispersion_errs[i])
 
-    # masses, mass_errs = get_jeans_eq_masses_and_errors(bin_densities, bin_dispersions, bin_dispersion_errs)
-    # for r in masses:
-    #     print 'r=%s: %s kg (+/- %s)' % (r, masses[r], mass_errs[r])
+    masses, mass_errs = get_jeans_eq_masses_and_errors(bin_densities, bin_dispersions, bin_dispersion_errs)
+    for r in masses:
+        print 'r=%s: %s kg (+/- %s)' % (r, masses[r], mass_errs[r])
 
     print estimate_overall_galaxy_mass(data_list)    
 
