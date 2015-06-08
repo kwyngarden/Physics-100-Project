@@ -89,7 +89,7 @@ def get_observed_densities_per_bin(dist_list):
     for dist in dist_list:
         for i in range(len(BINS)):
             start, end = BINS[i]
-            if dist >= start:
+            if dist >= start and dist <= end:
                 counts[i] += 1
                 break
     return counts
@@ -102,7 +102,8 @@ def get_bin_densities(data_list):
     # S_m,m+1 are projected (observed) galaxy counts
     dist_list = [get_apparent_sphere_distance(data[RA], data[DEC], CENTER_RA, CENTER_DEC) for data in data_list]
     observed_densities = get_observed_densities_per_bin(dist_list)
-    print 'Observed densities: %s' % (observed_densities)
+    print 'Observed densities: %s' % observed_densities
+    print BIN_CENTERS 
     num_bins = len(BINS)
     C_list = list()
     A_list = [get_A(i, i + 1) for i in range(num_bins)]
@@ -156,7 +157,7 @@ def get_bin_map(data_list):
         dist = get_apparent_sphere_distance(data[RA], data[DEC], CENTER_RA, CENTER_DEC)
         for i in range(len(BINS)):
             start, end = BINS[i]
-            if dist >= start:
+            if dist >= start and dist <= end:
                 if i not in bin_map:
                     bin_map[i] = []
                 bin_map[i].append(data)
@@ -355,20 +356,21 @@ if __name__=='__main__':
     # calculate_average_density(data_list)
 
     bin_densities = get_bin_densities(data_list)
+    print list(reversed(bin_densities))
     print 'Using bin densities: %s' % (bin_densities)
-    # plot_bin_densities(bin_densities)
+    plot_bin_densities(bin_densities)
     data_with_rv = [data for data in data_list if data[HRV] and data[HRV]>MIN_RV and data[HRV]<MAX_RV]
-    # plot_radial_velocities(data_with_rv)
+    plot_radial_velocities(data_with_rv)
 
     print 'Total enclosed mass estimated with virial theorem: %s kg\n' % (estimate_overall_enclosed_mass(data_with_rv))
 
     bin_dispersions, bin_dispersion_errs = get_bin_dispersions_and_errors(data_with_rv, bin_densities)
-    # plot_bin_velocity_dispersions(bin_dispersions, bin_dispersion_errs)
+    plot_bin_velocity_dispersions(bin_dispersions, bin_dispersion_errs)
     for i in range(len(BINS)):
         print 'Bin %s: %.2f km/s (+/- %.2f)' % (i, bin_dispersions[i], bin_dispersion_errs[i])
 
     masses, mass_errs = get_jeans_eq_masses_and_errors(bin_densities, bin_dispersions, bin_dispersion_errs)
-    #plot_bin_enclosed_masses(masses, mass_errs)
+    plot_bin_enclosed_masses(masses, mass_errs)
     
     print '\nJeans equation cumulative enclosed total masses:'
     for r in masses:
