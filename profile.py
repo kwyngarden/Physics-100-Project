@@ -107,6 +107,25 @@ def plot_dark_matter_profile(dark_matter_masses, dark_matter_errs):
     plt.ylabel('Enclosed Dark Matter Mass (kg)')
     plt.show()
 
+
+def plot_gas_profile(gas_masses, gas_errs):
+    gas_mass_list = list()
+    yerrs = list()
+    bin_keys = get_bin_keys()
+    for bin_key in bin_keys:
+        if bin_key in gas_masses:
+            gas_mass_list.append(gas_masses[bin_key])
+            yerrs.append(gas_errs[bin_key])
+    dark_mass_list = list(reversed(gas_mass_list))
+    yerrs = list(reversed(yerrs))
+    xs = bin_keys
+    plt.errorbar(xs, gas_mass_list, xerr=BIN_ERRORS[:-1], yerr=yerrs)
+    plt.xlabel('R (Mpc)')
+    plt.ylabel('Enclosed Gas Mass (kg)')
+    plt.show()
+
+
+
 def get_bin_keys():
     return [a_bin[1] for a_bin in BINS[1:]]
 
@@ -385,12 +404,16 @@ def calculate_dark_matter_masses_and_errors(masses, mass_errs, galaxy_masses, ga
     sorted_keys = sorted(gas_masses_and_errs)
     dark_matter_masses = {}
     dark_matter_errors = {}
+    gas_masses = {}
+    gas_errors = {}
     for key, galaxy_mass, galaxy_mass_err in zip(sorted_keys, galaxy_masses[:-1], galaxy_mass_errs[:-1]):
         gas_mass, gas_err = gas_masses_and_errs[key]
         total_mass, total_err = masses[key], mass_errs[key]
         dark_matter_masses[key] = total_mass - gas_mass - galaxy_mass
         dark_matter_errors[key] = np.sqrt(total_err**2 + gas_err**2 + galaxy_mass_err**2)
-    return dark_matter_masses, dark_matter_errors
+        gas_masses[key] = gas_mass
+        gas_errors[key] = gas_err
+    return dark_matter_masses, dark_matter_errors, gas_masses, gas_errors
 
 def calculate_average_density(data_list):
     # Sanity check for density
@@ -455,11 +478,11 @@ if __name__=='__main__':
     # plot_bin_enclosed_galaxy_masses(galaxy_masses, galaxy_mass_errs)
 
     print '\nDark matter profile:'
-    dark_matter_masses, dark_matter_errs = calculate_dark_matter_masses_and_errors(
+    dark_matter_masses, dark_matter_errs, gas_masses, gas_errors = calculate_dark_matter_masses_and_errors(
         masses, mass_errs, galaxy_masses, galaxy_mass_errs
     )
     for r in sorted(dark_matter_masses):
         print 'r=%s: %s kg (+/- %s)' % (r, dark_matter_masses[r], dark_matter_errs[r])
     plot_dark_matter_profile(dark_matter_masses, dark_matter_errs)
-
+    plot_gas_profile(gas_masses, gas_errors)
     print '\nDone.'
