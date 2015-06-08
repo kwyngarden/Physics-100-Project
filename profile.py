@@ -66,7 +66,7 @@ def plot_bin_velocity_dispersions(bin_dispersions, bin_dispersion_errs):
 def plot_bin_enclosed_masses(masses, mass_errs):
     mass_list = list()
     yerrs = list()
-    bin_keys = [a_bin[1] for a_bin in BINS[1:]]
+    bin_keys = get_bin_keys()
     for bin_key in bin_keys:
         if bin_key in masses:
             mass_list.append(masses[bin_key])
@@ -92,7 +92,23 @@ def plot_bin_enclosed_galaxy_masses(galaxy_masses, galaxy_mass_errs):
     plt.show()
 
 def plot_dark_matter_profile(dark_matter_masses, dark_matter_errs):
-    pass
+    dark_mass_list = list()
+    yerrs = list()
+    bin_keys = get_bin_keys()
+    for bin_key in bin_keys:
+        if bin_key in dark_matter_masses:
+            dark_mass_list.append(dark_matter_masses[bin_key])
+            yerrs.append(dark_matter_errs[bin_key])
+    dark_mass_list = list(reversed(dark_mass_list))
+    yerrs = list(reversed(yerrs))
+    xs = list(reversed(bin_keys))
+    plt.errorbar(xs, dark_mass_list, xerr=BIN_ERRORS[:-1], yerr=yerrs)
+    plt.xlabel('R (Mpc)')
+    plt.ylabel('Enclosed Dark Matter Mass (kg)')
+    plt.show()
+
+def get_bin_keys():
+    return [a_bin[1] for a_bin in BINS[1:]]
 
 # Input: list of distances of galaxies from center to cluster
 # Output: map from bin index (0 -> len(BINS)-1) to counts of galaxies observed in that bin
