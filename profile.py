@@ -238,7 +238,7 @@ def get_bin_velocity_dispersions(data_list, bin_densities, print_debug=False):
 # Input: list of galaxy data dicts (ones with RV only), list of densities (one entry per bin)
 # Output: list of velocity dispersions (one per bin), list of errors on those dispersions
 #         obtained via Monte Carlo simulation
-def get_bin_dispersions_and_errors(data_list, bin_densities, iters=50, print_progress=True):
+def get_bin_dispersions_and_errors(data_list, bin_densities, iters=5000, print_progress=True):
     bin_dispersion_lists = {i: [] for i in range(len(BINS))}
     for iter_num in xrange(iters):
         if print_progress and (iter_num+1) % 500 == 0 and iter_num > 0:
@@ -366,9 +366,6 @@ def calculate_dark_matter_masses_and_errors(masses, mass_errs, galaxy_masses, ga
         3.5: (1.230648093e+46, 0.),
         4.0: (1.66426569e+46, 0.),
     }
-    print masses
-    print gas_masses_and_errs
-    print galaxy_masses
     sorted_keys = sorted(gas_masses_and_errs)
     dark_matter_masses = {}
     dark_matter_errors = {}
