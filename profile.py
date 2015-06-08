@@ -1,5 +1,6 @@
 from collections import Counter
 from constants import *
+from mass_lum_ratios import get_mass_estimate
 import numpy as np
 from parse import read_data
 import matplotlib.pyplot as plt
@@ -22,6 +23,13 @@ def get_apparent_sphere_distance(ra1, dec1, ra2, dec2):
     x2, y2, z2 = convert_to_cartesian(ra2, dec2)
     return np.sqrt((x2 - x1)**2 + (y2 - y1)**2 + (z2 - z1)**2)
 
+def plot_galaxy_radii(data_list):
+    dist_list = [get_apparent_sphere_distance(data[RA], data[DEC], CENTER_RA, CENTER_DEC) for data in data_list]
+    plt.hist(dist_list, bins=25)
+    plt.xlabel('R (Mpc)')
+    plt.ylabel('# Galaxies')
+    plt.show()
+
 def plot_radial_velocities(data_list):
     dist_list = [get_apparent_sphere_distance(data[RA], data[DEC], CENTER_RA, CENTER_DEC) for data in data_list]
     hrvs = [data[HRV] for data in data_list]
@@ -34,6 +42,7 @@ def plot_radial_velocities(data_list):
             xerrs.append(0)
             yerrs.append(hrv_err)
     plt.errorbar(xs, ys, xerr=xerrs, yerr=yerrs, fmt='o')
+    plt.axis([0, 5.5, 1000, 11000])
     plt.xlabel('R (Mpc)')
     plt.ylabel('Radial velocity (km/s)')
     plt.show()
@@ -42,7 +51,7 @@ def plot_bin_densities(bin_densities):
     densities_list = list(reversed(bin_densities))
     plt.errorbar(BIN_CENTERS, densities_list, xerr=BIN_ERRORS)
     plt.xlabel('R (Mpc)')
-    plt.ylabel('Density (Galaxies/cm^3)')
+    plt.ylabel('Density (Galaxies/cubic centimeter)')
     plt.show()
 
 def plot_bin_velocity_dispersions(bin_dispersions, bin_dispersion_errs):
@@ -50,7 +59,7 @@ def plot_bin_velocity_dispersions(bin_dispersions, bin_dispersion_errs):
     yerrs = list(reversed(bin_dispersion_errs))
     plt.errorbar(BIN_CENTERS, dispersion_list, xerr=BIN_ERRORS, yerr=yerrs)
     plt.xlabel('R (Mpc)')
-    plt.ylabel('Velocity Dispersion (NO CLUE)')
+    plt.ylabel('Velocity Dispersion (km/s)')
     plt.show() 
 
 def plot_bin_enclosed_masses(masses, mass_errs):
@@ -69,7 +78,7 @@ def plot_bin_enclosed_masses(masses, mass_errs):
     yerrs = list(reversed(yerrs))
     plt.errorbar(BIN_CENTERS, mass_list, xerr=BIN_ERRORS, yerr=yerrs)
     plt.xlabel('R (Mpc)')
-    plt.ylabel('Mass (UNITS)')
+    plt.ylabel('Mass (kg)')
     plt.show()
 
 
@@ -226,6 +235,7 @@ def get_bin_dispersions_and_errors(data_list, bin_densities, iters=1000, print_p
 
 def jeans_eq_mass_profile(bin_densities, bin_dispersions):
     masses = {}
+    bin_dispersions = [km_to_m(disp) for disp in bin_dispersions]
     for right_bin_index in range(len(BINS)-1, 0, -1):
         r = BINS[right_bin_index][1]
         dispersion = np.mean([bin_dispersions[right_bin_index-1], bin_dispersions[right_bin_index]]) ** 2
@@ -238,7 +248,7 @@ def jeans_eq_mass_profile(bin_densities, bin_dispersions):
     return masses
 
 def get_jeans_eq_masses_and_errors(bin_densities, bin_dispersions, bin_dispersion_errs, iters=1000):
-    bin_densities = [cm3_to_m3_density(density)/1000000. for density in bin_densities]
+    bin_densities = [cm3_to_m3_density(density) for density in bin_densities]
     mass_lists = {BINS[right_bin_index][1]: [] for right_bin_index in range(len(BINS)-1, 0, -1)}
     for iter_num in xrange(iters):
         fake_bin_dispersions = [np.random.normal(bin_dispersions[i], bin_dispersion_errs[i]) for i in range(len(BINS))]
@@ -254,28 +264,120 @@ def get_jeans_eq_masses_and_errors(bin_densities, bin_dispersions, bin_dispersio
         mass_errs[r] = np.std(mass_list, ddof=1)
     return masses, mass_errs
 
+def generate_bin_masses(bin_map):
+    bin_masses = {}
+    for bin_index in range(len(BINS)):
+        bin_mass_list = []
+        for data in bin_map[bin_index]:
+            if data[LUM] and data[GTYPE]:
+                luminosity = np.random.normal(data[LUM], data[LUM_ERR]) if data[LUM_ERR] else data[LUM]
+                if luminosity > 0:
+                    mass, mass_err = get_mass_estimate(luminosity, data[GTYPE])
+                    generated_mass = max(0., np.random.normal(mass, mass_err))
+                    bin_mass_list.append(generated_mass)
+                else:
+                    bin_mass_list.append(0.)
+        multiplier = float(len(bin_map[bin_index])) / float(len(bin_mass_list))
+        known_mass = sum(bin_mass_list)
+        # print 'Multiplying known mass %s up by bin multiplier %s to get bin mass %s' % (known_mass, multiplier, multiplier * known_mass)
+        bin_masses[bin_index] = multiplier * known_mass
+    return bin_masses
+
+def calculate_galaxy_masses_and_errors(data_list, bin_densities, iters=1000):
+    # TODO: this is quite hacky, replace with real bin densities
+    AVG_DENSITY = 4.76186343229e-68
+    slope = AVG_DENSITY / (len(BINS))
+    bin_densities = [AVG_DENSITY + (i-len(BINS)/2)*slope for i in range(len(BINS))]
+
+    bin_map = get_bin_map(data_list)
+    bin_prob_map = get_bin_probability_map(bin_densities)
+
+    bin_mass_lists = {i: [] for i in range(len(BINS))}
+    for iter_num in range(iters):
+        curr_bin_masses = generate_bin_masses(bin_map)
+        bin_sum_masses = []
+        for bin_index in range(len(BINS)):
+            observed_mass = curr_bin_masses[bin_index]
+            for prev_bin_index in range(bin_index):
+                bin_sum_masses[prev_bin_index] += bin_prob_map[bin_index][prev_bin_index] * observed_mass
+            
+            own_bin_mass = bin_prob_map[bin_index][bin_index] * observed_mass
+            bin_sum_masses.append(own_bin_mass)
+
+        # Make the stored masses in each bin cumulative
+        for bin_index in range(1, len(BINS)):
+            bin_sum_masses[bin_index] += bin_sum_masses[bin_index-1]
+
+        for bin_index in range(len(BINS)):
+            bin_mass_lists[bin_index].append(bin_sum_masses[bin_index])
+
+    bin_masses = []
+    bin_mass_errs = []
+    for bin_index in range(len(BINS)):
+        bin_mass_list = bin_mass_lists[bin_index]
+        bin_masses.append(np.mean(bin_mass_list))
+        bin_mass_errs.append(np.std(bin_mass_list, ddof=1))
+    return bin_masses, bin_mass_errs
+
+
+def calculate_average_density(data_list):
+    # Sanity check for density
+    # TODO: why is this 10^6 lower than what we get with 1 bin? units?
+    #       If nothing works, try getting rid of reweighting and using simple bin volumes (e.g. the equation for a single V_ij)
+    print 'Number of galaxies: %s' % (len(data_list))
+    volume = (4./3.) * np.pi * (5.2)**3
+    print 'Volume in Mpc: %s' % (volume)
+    density = float(len(data_list)) / volume
+    print 'Density (# galaxies/cubic megaparsec): %s' % (density)
+    print 'Fit into cube 4Mpc on a side: %s galaxies' % (density * (4**3))
+    density_m = density / (mpc_to_m(1.)**3)
+    print 'Density (# galaxies/cubic meter): %s' % (density_m)
+
+def estimate_overall_enclosed_mass(data_list):
+    r = mpc_to_m(5.2)
+    disp_sq = np.var([km_to_m(data[HRV]) for data in data_list])
+    return (3./2.) * disp_sq * r / G
+
+def estimate_overall_galaxy_mass(data_list):
+    mass_list = []
+    # TODO: Monte Carlo this
+    for data in data_list:
+        if data[LUM] and data[GTYPE]:
+            mass, mass_err = get_mass_estimate(data[LUM], data[GTYPE])
+            mass_list.append(mass)
+    known_mass = sum(mass_list)
+    multiplier = float(len(data_list)) / float(len(mass_list))
+    return multiplier * known_mass
+
 if __name__=='__main__':
     data_list = read_data()
-
-    # Sanity check for density
-    # TODO: why is this 10^6 lower than what we get with 1 bin?
-    #       If nothing works, try getting rid of reweighting and using simple bin volumes (e.g. the equation for a single V_ij)
-    print len(data_list)
-    print (4./3.) * np.pi * (mpc_to_cm(5.2))**3
-    print (float(len(data_list)) / ((4./3.) * np.pi * (mpc_to_cm(5.2))**3))
+    # plot_galaxy_radii(data_list)
+    # calculate_average_density(data_list)
 
     bin_densities = get_bin_densities(data_list)
     print 'Using bin densities: %s' % (bin_densities)
-    #plot_bin_densities(bin_densities)
+    # plot_bin_densities(bin_densities)
     data_with_rv = [data for data in data_list if data[HRV] and data[HRV]>MIN_RV and data[HRV]<MAX_RV]
+    # plot_radial_velocities(data_with_rv)
+
+    print 'Total enclosed mass estimated with virial theorem: %s kg\n' % (estimate_overall_enclosed_mass(data_with_rv))
+
     bin_dispersions, bin_dispersion_errs = get_bin_dispersions_and_errors(data_with_rv, bin_densities)
-    #plot_bin_velocity_dispersions(bin_dispersions, bin_dispersion_errs)
+    # plot_bin_velocity_dispersions(bin_dispersions, bin_dispersion_errs)
     for i in range(len(BINS)):
         print 'Bin %s: %.2f km/s (+/- %.2f)' % (i, bin_dispersions[i], bin_dispersion_errs[i])
 
     masses, mass_errs = get_jeans_eq_masses_and_errors(bin_densities, bin_dispersions, bin_dispersion_errs)
     #plot_bin_enclosed_masses(masses, mass_errs)
+    
+    print '\nJeans equation cumulative enclosed total masses:'
     for r in masses:
         print 'r=%s: %s kg (+/- %s)' % (r, masses[r], mass_errs[r])
 
-    print 'Done'
+    print '\nEstimate of total enclosed galaxy mass: %s' % (estimate_overall_galaxy_mass(data_list))
+
+    galaxy_masses, galaxy_mass_errs = calculate_galaxy_masses_and_errors(data_list, bin_densities)
+    for i in range(len(BINS)):
+        print 'Bin %s: galaxy mass of %s kg (+/- %s)' % (i, galaxy_masses[i], galaxy_mass_errs[i])
+
+    print '\nDone.'

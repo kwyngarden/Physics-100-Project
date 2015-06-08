@@ -1,6 +1,8 @@
 from constants import *
 import numpy as np
+import re
 import requests
+import sys
 from time import sleep
 
 
@@ -44,10 +46,10 @@ def get_hrv_error(data):
     ra_str = data[RA]
     dec_str = data[DEC]
     # Don't look up HRV error, since we already have it or don't need it
-    if data[HRV_ERR]:
-        return float(data[HRV_ERR])
     if not data[HRV]:
         return None
+    if data[HRV_ERR]:
+        return float(data[HRV_ERR])
 
     print 'Looking up HRV error for (%s, %s)...' % (ra_str, dec_str)
     sleep(1) # Rate-limit
@@ -67,6 +69,55 @@ def get_hrv_error(data):
             return None
     print '\tERROR: for (%s, %s), found %s HRV error entries.' % (ra_str, dec_str, len(hrv_error_lines))
     return None
+
+def get_lum_and_error(lines, ra_str, dec_str):
+    lum_lines = [line for line in lines if '<td>Visual</td>' in line]
+    if len(lum_lines) == 1:
+        vline = lum_lines[0]
+        tokens = [token.strip() for token in re.split('</?t(?:r|d)>', vline) if token != '']
+        if len(tokens) != 6:
+            print '\tERROR: incorrect formatted luminosity line:\n\t\t%s\n\t\t' % (vline, tokens)
+        else:
+            lum_token = tokens[-1]
+            try:
+                if '+/-' in lum_token:
+                    lum, lum_err = [float(t.strip()) for t in lum_token.split('+/-')]
+                    return lum, lum_err
+                else:
+                    return float(lum_token.strip()), None
+            except:
+                e = sys.exc_info()[0]
+                print '\tERROR: luminosity extraction hit: %s' % (e)
+                return None, None
+    else:
+        print '\tERROR: for (%s, %s), found %s luminosity entries.' % (ra_str, dec_str, len(lum_lines))
+    return None, None
+
+def get_gtype(lines, ra_str, dec_str):
+    type_lines = [line for line in lines if 'Galaxy Morphology' in line]
+    if len(type_lines) == 1:
+        tline = type_lines[0]
+        tokens = [token.strip() for token in re.split('</?T(?:R|D)>', tline) if token]
+        try:
+            return tokens[2]
+        except:
+            e = sys.exc_info()[0]
+            print '\tERROR: galaxy type extraction hit: %s' % (e)
+            return None
+    else:
+        print '\tERROR: for (%s, %s), found %s galaxy type entries.' % (ra_str, dec_str, len(type_lines))
+    return None
+
+def get_lum_and_type(data):
+    ra_str = data[RA]
+    dec_str = data[DEC]
+    print 'Looking up lum+gtype for (%s, %s)...' % (ra_str, dec_str)
+    sleep(0.65) # Rate-limit
+    r = requests.get(get_url(ra_str, dec_str))
+    lines = r.content.split('\n')
+    lum, lum_err = get_lum_and_error(lines, ra_str, dec_str)
+    gtype = get_gtype(lines, ra_str, dec_str)
+    return lum, lum_err, gtype
 
 # Convert measurements like +41 22 33.4 or 02 59 32.19 to decimal numbers.
 # Note that the first unit can be degrees or hours, but the other two
@@ -90,12 +141,19 @@ def read_data(filename=DATAFILE, headers=HEADERS):
     for line_tokens in tokenized_lines:
         line_data = {}
         for value, header in zip(line_tokens, headers):
-            line_data[header] = value
+            line_data[header] = value if value else None
 
-        line_data[HRV] = float(line_data[HRV]) if line_data[HRV] != '' else None
-        line_data[MAG] = float(line_data[MAG]) if line_data[MAG] != '' else None
+        line_data[HRV] = float(line_data[HRV]) if line_data[HRV] else None
         line_data[HRV_ERR] = get_hrv_error(line_data)
         
+        # lum, lum_err, gtype = get_lum_and_type(line_data)
+        # line_data[LUM] = lum
+        # line_data[LUM_ERR] = lum_err
+        # line_data[GTYPE] = gtype
+
+        line_data[LUM] = float(line_data[LUM]) if line_data[LUM] else None
+        line_data[LUM_ERR] = float(line_data[LUM_ERR]) if line_data[LUM_ERR] else None
+
         line_data[RA] = convert_to_fraction(line_data[RA])
         line_data[DEC] = convert_to_fraction(line_data[DEC])
 
@@ -106,7 +164,10 @@ if __name__=='__main__':
     data = read_data()
     with open('deleteme.txt', 'w') as f:
         f.write(str(data))
-    with open('hrv__and_errors.txt', 'w') as f:
+    with open('lum_and_errors.txt', 'w') as f:
         for data_map in data:
-            f.write(str(data_map[HRV]) + '\t' + str(data_map[HRV_ERR]) + '\n')
+            f.write(str(data_map[LUM]) + '\t' + str(data_map[LUM_ERR]) + '\n')
+    with open('gtypes.txt', 'w') as f:
+        for data_map in data:
+            f.write(str(data_map[GTYPE]) + '\n')
     print 'Done'
