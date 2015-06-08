@@ -3,6 +3,8 @@ def mpc_to_cm(mpc):
     return 3.08567758128e+24 * mpc
 def mpc_to_m(mpc):
     return 3.08567758128e+22 * mpc
+def km_to_m(km):
+    return km * 1000.
 def cm3_to_m3_density(density):
     # Convert a density in cm^-3 to a density in m^-3
     return density * (100. ** 3)
@@ -19,6 +21,7 @@ MIN_RV = 500
 MAX_RV = 12500
 
 G = 6.67384e-11
+SOLAR_MASS = 1.9891e30
 
 DATAFILE = 'with_errors.tsv'
 
@@ -27,9 +30,12 @@ ALT_NAME_1 = 'AltName1'
 ALT_NAME_2 = 'AltName2'
 RA = 'RA'
 DEC = 'Dec'
-MAG = 'Mag'
+SUBR = 'SuBr'
+LUM = 'Lum'
+LUM_ERR = 'Lum_err'
 HRV = 'HRV'
 HRV_ERR = 'HRV_err'
+GTYPE = 'Galaxy_type'
 REMARKS = 'Remarks'
 
 HEADERS = [
@@ -38,8 +44,11 @@ HEADERS = [
     ALT_NAME_2,
     RA,
     DEC,
-    MAG,
+    SUBR,
+    LUM,
+    LUM_ERR,
     HRV,
     HRV_ERR,
-    REMARKS
+    GTYPE,
+    REMARKS,
 ]

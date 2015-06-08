@@ -2,6 +2,8 @@ import numpy as np
 
 def mpc_to_m(mpc):
     return 3.08567758128e+22 * mpc
+def km_to_m(km):
+    return km * 1000.
 
 G = 6.67384e-11 # Gravitational constant
 
@@ -9,13 +11,11 @@ G = 6.67384e-11 # Gravitational constant
 # the galaxies. All radii are in Megaparsecs. The bin distributions are
 # a little misshaped due to some quirks in our data (hopefully going away after
 # some bug squashing). 5.2 Mpc is the max radius in our data.
-BINS = [(4.5, 5.2), (3.5, 4.5), (2.75, 3.5), (2., 2.75), (1.5, 2.), (0., 1.5)]
+# BINS = [(4.5, 5.2), (3.5, 4.5), (2.75, 3.5), (2., 2.75), (1.5, 2.), (0., 1.5)]
 # Alternate, more "normal-sized" bins for experimenting
-# BINS = [(4., 5.2), (3., 4.), (2., 3.), (1.5, 2.), (1., 1.5), (0.5, 1.), (0., 0.5)]
+BINS = [(4., 5.2), (3., 4.), (2., 3.), (1.5, 2.), (1., 1.5), (0.5, 1.), (0., 0.5)]
 
-# Galaxies per cubic centimeter, calculated over all our data.
-# This comes out to one galaxy in a cube about ~900,000 parsecs on each side,
-# which seems reasonable when compared to the Milky Way/Andromeda.
+# Galaxies per cubic meter, calculated over all our data.
 AVG_DENSITY = 4.76186343229e-68
 
 def get_bin_densities():
@@ -32,7 +32,7 @@ def get_bin_dispersions():
     # dispersion moving away from our data, so that is replicated here.
     AVG_DISPERSION = 1300.
     slope = AVG_DISPERSION / (10*len(BINS))
-    return [AVG_DISPERSION + (i-len(BINS)/2)*slope for i in range(len(BINS))]
+    return [km_to_m(AVG_DISPERSION + (i-len(BINS)/2)*slope) for i in range(len(BINS))]
 
 def jeans_eq_mass_profile(bin_densities, bin_dispersions):
     masses = {}
