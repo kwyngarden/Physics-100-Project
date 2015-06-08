@@ -355,9 +355,9 @@ def generate_bin_masses(bin_map):
 
 def calculate_galaxy_masses_and_errors(data_list, bin_densities, iters=5000):
     # TODO: this is quite hacky, replace with real bin densities
-    AVG_DENSITY = 4.76186343229e-68
-    slope = AVG_DENSITY / (len(BINS))
-    bin_densities = [AVG_DENSITY + (i-len(BINS)/2)*slope for i in range(len(BINS))]
+    # AVG_DENSITY = 4.76186343229e-68
+    # slope = AVG_DENSITY / (len(BINS))
+    # bin_densities = [AVG_DENSITY + (i-len(BINS)/2)*slope for i in range(len(BINS))]
 
     bin_map = get_bin_map(data_list)
     bin_prob_map = get_bin_probability_map(bin_densities)
@@ -475,7 +475,7 @@ if __name__=='__main__':
     galaxy_masses, galaxy_mass_errs = calculate_galaxy_masses_and_errors(data_list, bin_densities)
     for i in range(len(BINS)):
         print 'Bin %s: galaxy mass of %s kg (+/- %s)' % (i, galaxy_masses[i], galaxy_mass_errs[i])
-    # plot_bin_enclosed_galaxy_masses(galaxy_masses, galaxy_mass_errs)
+    plot_bin_enclosed_galaxy_masses(galaxy_masses, galaxy_mass_errs)
 
     print '\nDark matter profile:'
     dark_matter_masses, dark_matter_errs, gas_masses, gas_errors = calculate_dark_matter_masses_and_errors(
