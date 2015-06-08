@@ -17,6 +17,11 @@ BINS = [(4.5, 5.2), (3.5, 4.5), (2.75, 3.5), (2., 2.75), (1.5, 2.), (0., 1.5)]
 # BINS = [(0., 5.2)]
 BIN_WIDTHS = [DISTANCE_TO_PERSEUS / (end-start) for (start, end) in BINS]
 
+# Used for graphing purposes
+BIN_CENTERS = list(reversed([(a_bin[0] + a_bin[1]) / 2 for a_bin in BINS]))
+BIN_ERRORS = list(reversed([(a_bin[1] - a_bin[0]) / 2 for a_bin in BINS]))
+
+
 MIN_RV = 500
 MAX_RV = 12500
 
