@@ -88,9 +88,11 @@ def plot_bin_enclosed_galaxy_masses(galaxy_masses, galaxy_mass_errs):
     yerrs = list(reversed(galaxy_mass_errs)) 
     plt.errorbar(BIN_CENTERS, mass_list, xerr=BIN_ERRORS, yerr=yerrs)   
     plt.xlabel('R (Mpc)')
-    plt.ylabel('Galaxy Masses (kg)')
+    plt.ylabel('Enclosed Galaxy Mass (kg)')
     plt.show()
 
+def plot_dark_matter_profile(dark_matter_masses, dark_matter_errs):
+    pass
 
 # Input: list of distances of galaxies from center to cluster
 # Output: map from bin index (0 -> len(BINS)-1) to counts of galaxies observed in that bin
@@ -236,7 +238,7 @@ def get_bin_velocity_dispersions(data_list, bin_densities, print_debug=False):
 # Input: list of galaxy data dicts (ones with RV only), list of densities (one entry per bin)
 # Output: list of velocity dispersions (one per bin), list of errors on those dispersions
 #         obtained via Monte Carlo simulation
-def get_bin_dispersions_and_errors(data_list, bin_densities, iters=5000, print_progress=True):
+def get_bin_dispersions_and_errors(data_list, bin_densities, iters=50, print_progress=True):
     bin_dispersion_lists = {i: [] for i in range(len(BINS))}
     for iter_num in xrange(iters):
         if print_progress and (iter_num+1) % 500 == 0 and iter_num > 0:
@@ -352,6 +354,30 @@ def calculate_galaxy_masses_and_errors(data_list, bin_densities, iters=5000):
         bin_mass_errs.append(np.std(bin_mass_list, ddof=1))
     return bin_masses, bin_mass_errs
 
+def calculate_dark_matter_masses_and_errors(masses, mass_errs, galaxy_masses, galaxy_mass_errs):
+    # First four are from gas fractions from literature; rest are projected.
+    gas_masses_and_errs = {
+        0.5: (2.0295050966765e+44, 1.8040420595359498e+42),
+        1.0: (7.278174921815e+44, 1.4903155911914e+43),
+        1.5: (1.4256432852246e+45, 5.162652517464e+43),
+        2.0: (4.616955362673e+45, 1.1345805723369e+44),
+        2.5: (5.767446462e+45, 0.),
+        3.0: (8.691399341e+45, 0.),
+        3.5: (1.230648093e+46, 0.),
+        4.0: (1.66426569e+46, 0.),
+    }
+    print masses
+    print gas_masses_and_errs
+    print galaxy_masses
+    sorted_keys = sorted(gas_masses_and_errs)
+    dark_matter_masses = {}
+    dark_matter_errors = {}
+    for key, galaxy_mass, galaxy_mass_err in zip(sorted_keys, galaxy_masses[:-1], galaxy_mass_errs[:-1]):
+        gas_mass, gas_err = gas_masses_and_errs[key]
+        total_mass, total_err = masses[key], mass_errs[key]
+        dark_matter_masses[key] = total_mass - gas_mass - galaxy_mass
+        dark_matter_errors[key] = np.sqrt(total_err**2 + gas_err**2 + galaxy_mass_err**2)
+    return dark_matter_masses, dark_matter_errors
 
 def calculate_average_density(data_list):
     # Sanity check for density
@@ -402,7 +428,7 @@ if __name__=='__main__':
         print 'Bin %s: %.2f km/s (+/- %.2f)' % (i, bin_dispersions[i], bin_dispersion_errs[i])
 
     masses, mass_errs = get_jeans_eq_masses_and_errors(bin_densities, bin_dispersions, bin_dispersion_errs)
-    plot_bin_enclosed_masses(masses, mass_errs)
+    # plot_bin_enclosed_masses(masses, mass_errs)
     
     print '\nJeans equation cumulative enclosed total masses:'
     for r in masses:
@@ -413,6 +439,14 @@ if __name__=='__main__':
     galaxy_masses, galaxy_mass_errs = calculate_galaxy_masses_and_errors(data_list, bin_densities)
     for i in range(len(BINS)):
         print 'Bin %s: galaxy mass of %s kg (+/- %s)' % (i, galaxy_masses[i], galaxy_mass_errs[i])
-    plot_bin_enclosed_galaxy_masses(galaxy_masses, galaxy_mass_errs)
+    # plot_bin_enclosed_galaxy_masses(galaxy_masses, galaxy_mass_errs)
+
+    print '\nDark matter profile:'
+    dark_matter_masses, dark_matter_errs = calculate_dark_matter_masses_and_errors(
+        masses, mass_errs, galaxy_masses, galaxy_mass_errs
+    )
+    for r in sorted(dark_matter_masses):
+        print 'r=%s: %s kg (+/- %s)' % (r, dark_matter_masses[r], dark_matter_errs[r])
+    plot_dark_matter_profile(dark_matter_masses, dark_matter_errs)
 
     print '\nDone.'
