@@ -83,7 +83,13 @@ def plot_bin_enclosed_masses(masses, mass_errs):
     plt.show()
 
 def plot_bin_enclosed_galaxy_masses(galaxy_masses, galaxy_mass_errs):
-    pass
+    mass_list = list(reversed(galaxy_masses))
+    yerrs = list(reversed(galaxy_mass_errs)) 
+    plt.errorbar(BIN_CENTERS, mass_list, xerr=BIN_ERRORS, yerr=yerrs)   
+    plt.xlabel('R (Mpc)')
+    plt.ylabel('Galaxy Masses (kg)')
+    plt.show()
+
 
 # Input: list of distances of galaxies from center to cluster
 # Output: map from bin index (0 -> len(BINS)-1) to counts of galaxies observed in that bin
@@ -325,8 +331,8 @@ def calculate_galaxy_masses_and_errors(data_list, bin_densities, iters=5000):
             bin_sum_masses.append(own_bin_mass)
 
         # Make the stored masses in each bin cumulative
-        for bin_index in range(1, len(BINS)):
-            bin_sum_masses[bin_index] += bin_sum_masses[bin_index-1]
+        for bin_index in range(len(BINS) - 2, -1, -1):
+            bin_sum_masses[bin_index] += bin_sum_masses[bin_index+1]
 
         for bin_index in range(len(BINS)):
             bin_mass_lists[bin_index].append(bin_sum_masses[bin_index])
