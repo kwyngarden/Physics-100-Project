@@ -39,13 +39,39 @@ def plot_radial_velocities(data_list):
     plt.show()
 
 def plot_bin_densities(bin_densities):
-    pass # TODO
+    densities_list = list(reversed(bin_densities))
+    plt.errorbar(BIN_CENTERS, densities_list, xerr=BIN_ERRORS)
+    plt.xlabel('R (Mpc)')
+    plt.ylabel('Density (Galaxies/cm^3)')
+    plt.show()
 
 def plot_bin_velocity_dispersions(bin_dispersions, bin_dispersion_errs):
-    pass # TODO
+    dispersion_list = list(reversed(bin_dispersions))
+    yerrs = list(reversed(bin_dispersion_errs))
+    plt.errorbar(BIN_CENTERS, dispersion_list, xerr=BIN_ERRORS, yerr=yerrs)
+    plt.xlabel('R (Mpc)')
+    plt.ylabel('Velocity Dispersion (NO CLUE)')
+    plt.show() 
 
 def plot_bin_enclosed_masses(masses, mass_errs):
-    pass # TODO
+    mass_list = list()
+    yerrs = list()
+    bin_keys = [a_bin[1] for a_bin in BINS]
+    for bin_key in bin_keys:
+        if bin_key in masses:
+            mass_list.append(masses[bin_key])
+            yerrs.append(mass_errs[bin_key])
+        else:
+            mass_list.append(0.0)
+            yerrs.append(0.0)
+
+    mass_list = list(reversed(mass_list))
+    yerrs = list(reversed(yerrs))
+    plt.errorbar(BIN_CENTERS, mass_list, xerr=BIN_ERRORS, yerr=yerrs)
+    plt.xlabel('R (Mpc)')
+    plt.ylabel('Mass (UNITS)')
+    plt.show()
+
 
 # Input: list of distances of galaxies from center to cluster
 # Output: map from bin index (0 -> len(BINS)-1) to counts of galaxies observed in that bin
@@ -238,13 +264,15 @@ if __name__=='__main__':
 
     bin_densities = get_bin_densities(data_list)
     print 'Using bin densities: %s' % (bin_densities)
-
+    plot_bin_densities(bin_densities)
     data_with_rv = [data for data in data_list if data[HRV] and data[HRV]>MIN_RV and data[HRV]<MAX_RV]
     bin_dispersions, bin_dispersion_errs = get_bin_dispersions_and_errors(data_with_rv, bin_densities)
+    plot_bin_velocity_dispersions(bin_dispersions, bin_dispersion_errs)
     for i in range(len(BINS)):
         print 'Bin %s: %.2f km/s (+/- %.2f)' % (i, bin_dispersions[i], bin_dispersion_errs[i])
 
     masses, mass_errs = get_jeans_eq_masses_and_errors(bin_densities, bin_dispersions, bin_dispersion_errs)
+    plot_bin_enclosed_masses(masses, mass_errs)
     for r in masses:
         print 'r=%s: %s kg (+/- %s)' % (r, masses[r], mass_errs[r])
 
