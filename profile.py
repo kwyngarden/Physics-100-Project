@@ -97,12 +97,14 @@ def get_bin_densities(data_list):
     num_bins = len(BINS)
     C_list = list()
     A_list = [get_A(i, i + 1) for i in range(num_bins)]
-    b = ((np.pi * mpc_to_cm(DISTANCE_TO_PERSEUS)) / 10800)**2
+    b = ((np.pi * mpc_to_cm(DISTANCE_TO_PERSEUS)) / 10800.0)**2
     for i in range(num_bins):
         the_sum = observed_densities[i] / (b / A_list[i])
+        #the_sum = observed_densities[i]
         partial_sum = sum([sub_sum(j, i, C_list) for j in range(i)])
         C_i = (the_sum - partial_sum) / get_V(i, i + 1)
         C_list.append(C_i)
+        print "Test"
     return C_list
 
 def get_A(i, j):
@@ -114,7 +116,7 @@ def sub_sum(i, m, C_list):
 def get_V(i, j):
     if i >= j:
         return 0.0
-    return (4 / 3) * np.pi * (get_r(i)**2 - get_r(j)**2)**1.5
+    return (4.0 / 3) * np.pi * (get_r(i)**2 - get_r(j)**2)**1.5
 
 def get_r(i):
     if i == len(BINS):
@@ -264,15 +266,15 @@ if __name__=='__main__':
 
     bin_densities = get_bin_densities(data_list)
     print 'Using bin densities: %s' % (bin_densities)
-    plot_bin_densities(bin_densities)
+    #plot_bin_densities(bin_densities)
     data_with_rv = [data for data in data_list if data[HRV] and data[HRV]>MIN_RV and data[HRV]<MAX_RV]
     bin_dispersions, bin_dispersion_errs = get_bin_dispersions_and_errors(data_with_rv, bin_densities)
-    plot_bin_velocity_dispersions(bin_dispersions, bin_dispersion_errs)
+    #plot_bin_velocity_dispersions(bin_dispersions, bin_dispersion_errs)
     for i in range(len(BINS)):
         print 'Bin %s: %.2f km/s (+/- %.2f)' % (i, bin_dispersions[i], bin_dispersion_errs[i])
 
     masses, mass_errs = get_jeans_eq_masses_and_errors(bin_densities, bin_dispersions, bin_dispersion_errs)
-    plot_bin_enclosed_masses(masses, mass_errs)
+    #plot_bin_enclosed_masses(masses, mass_errs)
     for r in masses:
         print 'r=%s: %s kg (+/- %s)' % (r, masses[r], mass_errs[r])
 
